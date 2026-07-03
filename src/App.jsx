@@ -16,8 +16,7 @@ export default function App() {
   const [filtroMes, setFiltroMes] = useState('');
 
 
-  
-  // Traer los datos guardados en la nube gratis
+
   const cargarDatos = async () => {
     setLoading(true);
     try {
@@ -25,8 +24,9 @@ export default function App() {
         headers: { 'X-Master-Key': API_KEY }
       });
       const data = await res.json();
-      // JSONBin envía la info dentro de la propiedad "record"
-      setMovimientos(data.record || []);
+      
+      // CAMBIO ACÁ: Accedemos a .movimientos dentro de .record
+      setMovimientos(data.record.movimientos || []);
     } catch (err) {
       console.error("Error al cargar datos remotos:", err);
     } finally {

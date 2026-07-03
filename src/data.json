@@ -3,4 +3,4 @@
     { "id": "1", "monto": 15000, "detalle": "Compra de alimentos", "tipo": "gasto", "estado": "Pagado", "fecha": "2026-06-15", "historialCambios": [{ "usuario": "Maximiliano", "fechaCambio": "2026-06-15" }] },
     { "id": "2", "monto": 45000, "detalle": "Cuota escolar", "tipo": "pago", "estado": "Pendiente", "fecha": "2026-07-01", "historialCambios": [{ "usuario": "Débora", "fechaCambio": "2026-07-01" }] }
   ]
-}
+} 
