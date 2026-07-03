@@ -152,7 +152,6 @@ export default function App() {
     return 'bg-blue-100 text-blue-800 border border-blue-300';
   };
 
-  // Retorna color dinámico según el usuario de la fila
   const getUserColorClass = (user) => {
     return user === 'Débora' ? 'text-purple-600 bg-purple-50 border-purple-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200';
   };
@@ -245,7 +244,11 @@ export default function App() {
                   <div class="p-8 text-center text-gray-500 text-sm">No hay registros cargados para los filtros seleccionados.</div>
                 ) : (
                   movimientos.filter(m => !filtroMes || m.fecha.startsWith(filtroMes)).map((m) => {
-                    const ult = m.historialCambios && m.historialCambios.length > 0 ? m.historialCambios[m.historialCambios.length - 1] : { usuario: 'Sistema', fechaCambio: m.fecha };
+                    const tieneModificaciones = m.historialCambios && m.historialCambios.length > 1;
+                    const ult = m.historialCambios && m.historialCambios.length > 0 
+                      ? m.historialCambios[m.historialCambios.length - 1] 
+                      : { usuario: 'Sistema', fechaCambio: m.fecha };
+                    
                     return (
                       <div key={m.id} class="p-4 hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
@@ -257,7 +260,7 @@ export default function App() {
                           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 mt-1">
                             <span class="flex items-center gap-1"><Calendar class="w-3 h-3" /> {m.fecha}</span>
                             <span class={`px-1.5 py-0.5 rounded border text-[11px] font-medium ${getUserColorClass(ult.usuario)}`}>
-                              Modificado por {ult.usuario} ({ult.fechaCambio})
+                              {tieneModificaciones ? 'Modificado por ' : 'Agregado por '} {ult.usuario} ({ult.fechaCambio})
                             </span>
                           </div>
                         </div>
@@ -273,7 +276,7 @@ export default function App() {
                           </div>
                           
                           <div class="flex items-center gap-2">
-                            <span class={`px-2.5 py-1 text-xs font-semibold rounded-full ${getEstadoBadge(m.estado)}`}>{m.estado}</span>
+                            <span class={`px-2.5 py-1 text-xs font-semibold rounded-full ${getEstadoBadge(m.estado)}`}>={m.estado}</span>
                             <select value={m.estado} onChange={(e) => handleCambiarEstadoRapido(m.id, e.target.value)} class="border border-gray-300 bg-white rounded p-1 text-xs text-gray-600">
                               <option value="Pendiente">Pendiente</option>
                               <option value="Pagado">Pagado</option>
