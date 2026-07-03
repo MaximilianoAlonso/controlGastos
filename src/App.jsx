@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
+import { PlusCircle, Search, Calendar, User, RefreshCw, Trash2, Pencil, XCircle } from 'lucide-react';
 
 const BIN_ID = "6a472b03da38895dfe26084f"; 
 const API_KEY = "$2a$10$UhahWGxcwBqBipKpcuxwjeBn9GjMMS9mA6HmwpMDJSnVBSFIdmvJK"; 
@@ -13,6 +13,9 @@ export default function App() {
   const [estado, setEstado] = useState('Pendiente');
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
+  
+  // Estados para la edición
+  const [editandoId, setEditandoId] = useState(null);
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -60,29 +63,83 @@ export default function App() {
     }
   };
 
-  const handleAgregar = async (e) => {
+  const handleAgregarOEditar = async (e) => {
     e.preventDefault();
     if (!monto || !detalle) return alert('Por favor completa los campos');
 
-    const nuevo = {
-      id: Date.now().toString(),
-      monto: parseFloat(monto),
-      detalle, 
-      tipo, 
-      estado,
-      fecha: new Date().toISOString().split('T')[0],
-      historialCambios: [{ usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
-    };
+    let listaActualizada;
 
-    const listaActualizada = [nuevo, ...movimientos];
+    if (editandoId) {
+      // Modo Edición
+      listaActualizada = movimientos.map(m => {
+        if (m.id === editandoId) {
+          const cambiosPrevios = m.historialCambios || [];
+          return {
+            ...m,
+            monto: parseFloat(monto),
+            detalle,
+            tipo,
+            estado,
+            historialCambios: [...cambiosPrevios, { usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
+          };
+        }
+        return m;
+      });
+      setEditandoId(null);
+    } else {
+      // Modo Nuevo Registro
+      const nuevo = {
+        id: Date.now().toString(),
+        monto: parseFloat(monto),
+        detalle, 
+        tipo, 
+        estado,
+        fecha: new Date().toISOString().split('T')[0],
+        historialCambios: [{ usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
+      };
+      listaActualizada = [nuevo, ...movimientos];
+    }
+
     setMovimientos(listaActualizada);
     setMonto(''); 
     setDetalle('');
+    setTipo('gasto');
+    setEstado('Pendiente');
 
     await actualizarNube(listaActualizada);
   };
 
-  const handleCambiarEstado = async (id, nuevoEstado) => {
+  const handleIniciarEdicion = (mov) => {
+    setEditandoId(mov.id);
+    setMonto(mov.monto);
+    setDetalle(mov.detalle);
+    setTipo(mov.tipo);
+    setEstado(mov.estado);
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditandoId(null);
+    setMonto('');
+    setDetalle('');
+    setTipo('gasto');
+    setEstado('Pendiente');
+  };
+
+  const handleBorrar = async (id) => {
+    if (!confirm('¿Estás seguro de que querés borrar este registro?')) return;
+
+    const listaActualizada = movimientos.filter(m => m.id !== id);
+    setMovimientos(listaActualizada);
+
+    // Si justo se estaba editando el elemento borrado, limpiamos el formulario
+    if (editandoId === id) {
+      handleCancelarEdicion();
+    }
+
+    await actualizarNube(listaActualizada);
+  };
+
+  const handleCambiarEstadoRapido = async (id, nuevoEstado) => {
     const listaActualizada = movimientos.map(m => m.id === id ? {
       ...m, 
       estado: nuevoEstado,
@@ -122,9 +179,13 @@ export default function App() {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulario Dinámico */}
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><PlusCircle class="w-5 h-5 text-indigo-600" /> Nuevo Registro</h2>
-            <form onSubmit={handleAgregar} class="space-y-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <PlusCircle class={`w-5 h-5 ${editandoId ? 'text-amber-500' : 'text-indigo-600'}`} /> 
+              {editandoId ? 'Modificar Registro' : 'Nuevo Registro'}
+            </h2>
+            <form onSubmit={handleAgregarOEditar} class="space-y-4">
               <div>
                 <label class="block text-xs font-medium text-gray-700 uppercase tracking-wider mb-1">Monto ($)</label>
                 <input type="number" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="Ej: 25000" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -150,12 +211,21 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <button type="submit" disabled={loading} class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors disabled:bg-gray-400">
-                {loading ? 'Sincronizando...' : 'Agregar Registro'}
-              </button>
+              
+              <div class="flex flex-col gap-2 pt-2">
+                <button type="submit" disabled={loading} class={`w-full text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors disabled:bg-gray-400 ${editandoId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                  {loading ? 'Sincronizando...' : editandoId ? 'Guardar Cambios' : 'Agregar Registro'}
+                </button>
+                {editandoId && (
+                  <button type="button" onClick={handleCancelarEdicion} class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg text-sm transition-colors border border-gray-300 flex items-center justify-center gap-1">
+                    <XCircle class="w-4 h-4" /> Cancelar Edición
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
+          {/* Historial */}
           <div class="lg:col-span-2 space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
               <div class="flex items-center gap-2 text-sm text-gray-600"><Search class="w-4 h-4 text-gray-400" /> <span>Filtrar por Mes:</span></div>
@@ -186,13 +256,26 @@ export default function App() {
                             <span class="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Modificado por {ult.usuario} ({ult.fechaCambio})</span>
                           </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                          <span class={`px-2.5 py-1 text-xs font-semibold rounded-full ${getEstadoBadge(m.estado)}`}>{m.estado}</span>
-                          <select value={m.estado} onChange={(e) => handleCambiarEstado(m.id, e.target.value)} class="border border-gray-300 bg-white rounded p-1 text-xs text-gray-600">
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Pagado">Pagado</option>
-                            <option value="En revisión">En revisión</option>
-                          </select>
+                        
+                        <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-none pt-2 sm:pt-0">
+                          {/* Botones de acción rápidos */}
+                          <div class="flex items-center gap-1">
+                            <button onClick={() => handleIniciarEdicion(m)} class="p-1.5 hover:bg-amber-50 rounded text-gray-400 hover:text-amber-600 transition-colors" title="Modificar todo el registro">
+                              <Pencil class="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleBorrar(m.id)} class="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition-colors" title="Borrar registro">
+                              <Trash2 class="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div class="flex items-center gap-2">
+                            <span class={`px-2.5 py-1 text-xs font-semibold rounded-full ${getEstadoBadge(m.estado)}`}>{m.estado}</span>
+                            <select value={m.estado} onChange={(e) => handleCambiarEstadoRapido(m.id, e.target.value)} class="border border-gray-300 bg-white rounded p-1 text-xs text-gray-600">
+                              <option value="Pendiente">Pendiente</option>
+                              <option value="Pagado">Pagado</option>
+                              <option value="En revisión">En revisión</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     );
