@@ -67,8 +67,6 @@ export default function App() {
     if (!monto || !detalle) return alert('Por favor completa los campos');
 
     let listaActualizada;
-
-    // Fuerza que si es un pago, el estado guardado sea sí o sí 'Pagado'
     const estadoFinal = tipo === 'pago' ? 'Pagado' : estado;
 
     if (editandoId) {
@@ -159,7 +157,6 @@ export default function App() {
     return user === 'Débora' ? 'text-purple-600 bg-purple-50 border-purple-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200';
   };
 
-  // Efecto secundario: si en el formulario eligen 'pago', forzar estado a 'Pagado'
   useEffect(() => {
     if (tipo === 'pago') {
       setEstado('Pagado');
@@ -264,22 +261,19 @@ export default function App() {
                       ? m.historialCambios[m.historialCambios.length - 1] 
                       : { usuario: 'Sistema', fechaCambio: m.fecha };
                     
-                    // Condición para saber si es un gasto que ya fue pagado
                     const esGastoPagado = m.tipo === 'gasto' && m.estado === 'Pagado';
 
                     return (
-                      <div key={m.id} className={`p-4 hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-opacity ${esGastoPagado ? 'opacity-60' : ''}`}>
+                      <div key={m.id} className={`p-4 hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all ${esGastoPagado ? 'opacity-60 bg-gray-50' : ''}`}>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-0.5 text-xs font-semibold rounded ${m.tipo === 'gasto' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>{m.tipo.toUpperCase()}</span>
                             
-                            {/* Monto tachado si es gasto pagado */}
-                            <span className={`text-sm font-bold text-gray-900 ${esGastoPagado ? 'line-through text-gray-500' : ''}`}>
+                            <span className={`text-sm font-bold text-gray-900 ${esGastoPagado ? 'line-through text-gray-400' : ''}`}>
                               ${m.monto.toLocaleString('es-AR')}
                             </span>
                           </div>
                           
-                          {/* Detalle tachado si es gasto pagado */}
                           <p className={`text-sm font-medium text-gray-700 ${esGastoPagado ? 'line-through text-gray-400' : ''}`}>{m.detalle}</p>
                           
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 mt-1">
@@ -305,12 +299,12 @@ export default function App() {
                               {m.estado}
                             </span>
                             
-                            {/* El menú desplegable SÓLO aparece si es un GASTO */}
+                            {/* Ahora apunta a handleCambiarEstadoRapido correctamente */}
                             {m.tipo === 'gasto' && (
                               <select 
                                 value={m.estado} 
-                                onChange={(e) => handleCambiarEstadoQuick(m.id, e.target.value)} 
-                                className="border border-gray-300 bg-white rounded p-1 text-xs text-gray-600 focus:outline-none"
+                                onChange={(e) => handleCambiarEstadoRapido(m.id, e.target.value)} 
+                                className="border border-gray-300 bg-white rounded p-1 text-xs text-gray-600 focus:outline-none focus:border-indigo-500"
                               >
                                 <option value="Pendiente">Pendiente</option>
                                 <option value="Pagado">Pagado</option>
