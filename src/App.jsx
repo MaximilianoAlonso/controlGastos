@@ -15,6 +15,8 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
 
+
+  
   // Traer los datos guardados en la nube gratis
   const cargarDatos = async () => {
     setLoading(true);
