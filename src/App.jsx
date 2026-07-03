@@ -14,7 +14,6 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
   
-  // Estados para la edición
   const [editandoId, setEditandoId] = useState(null);
 
   const cargarDatos = async () => {
@@ -70,7 +69,6 @@ export default function App() {
     let listaActualizada;
 
     if (editandoId) {
-      // Modo Edición
       listaActualizada = movimientos.map(m => {
         if (m.id === editandoId) {
           const cambiosPrevios = m.historialCambios || [];
@@ -87,7 +85,6 @@ export default function App() {
       });
       setEditandoId(null);
     } else {
-      // Modo Nuevo Registro
       const nuevo = {
         id: Date.now().toString(),
         monto: parseFloat(monto),
@@ -131,7 +128,6 @@ export default function App() {
     const listaActualizada = movimientos.filter(m => m.id !== id);
     setMovimientos(listaActualizada);
 
-    // Si justo se estaba editando el elemento borrado, limpiamos el formulario
     if (editandoId === id) {
       handleCancelarEdicion();
     }
@@ -156,6 +152,11 @@ export default function App() {
     return 'bg-blue-100 text-blue-800 border border-blue-300';
   };
 
+  // Retorna color dinámico según el usuario de la fila
+  const getUserColorClass = (user) => {
+    return user === 'Débora' ? 'text-purple-600 bg-purple-50 border-purple-200' : 'text-emerald-600 bg-emerald-50 border-emerald-200';
+  };
+
   return (
     <div class="min-h-screen bg-gray-100 py-8 px-4 font-sans">
       <div class="max-w-5xl mx-auto">
@@ -170,16 +171,19 @@ export default function App() {
             </button>
             <div class="flex items-center bg-gray-50 p-2 rounded-lg border border-gray-300">
               <span class="text-sm font-medium text-gray-600 mr-2">Operando como:</span>
-              <select value={usuarioActual} onChange={(e) => setUsuarioActual(e.target.value)} class="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-semibold text-gray-700">
-                <option value="Maximiliano">Maximiliano</option>
-                <option value="Débora">Débora</option>
+              <select 
+                value={usuarioActual} 
+                onChange={(e) => setUsuarioActual(e.target.value)} 
+                class={`bg-white border rounded px-2 py-1 text-sm font-bold focus:outline-none ring-2 ${usuarioActual === 'Débora' ? 'text-purple-700 border-purple-300 ring-purple-100' : 'text-emerald-700 border-emerald-300 ring-emerald-100'}`}
+              >
+                <option value="Maximiliano" class="text-emerald-700 font-bold">Maximiliano</option>
+                <option value="Débora" class="text-purple-700 font-bold">Débora</option>
               </select>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulario Dinámico */}
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
             <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <PlusCircle class={`w-5 h-5 ${editandoId ? 'text-amber-500' : 'text-indigo-600'}`} /> 
@@ -225,7 +229,6 @@ export default function App() {
             </form>
           </div>
 
-          {/* Historial */}
           <div class="lg:col-span-2 space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
               <div class="flex items-center gap-2 text-sm text-gray-600"><Search class="w-4 h-4 text-gray-400" /> <span>Filtrar por Mes:</span></div>
@@ -253,12 +256,13 @@ export default function App() {
                           <p class="text-sm text-gray-700 font-medium">{m.detalle}</p>
                           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 mt-1">
                             <span class="flex items-center gap-1"><Calendar class="w-3 h-3" /> {m.fecha}</span>
-                            <span class="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Modificado por {ult.usuario} ({ult.fechaCambio})</span>
+                            <span class={`px-1.5 py-0.5 rounded border text-[11px] font-medium ${getUserColorClass(ult.usuario)}`}>
+                              Modificado por {ult.usuario} ({ult.fechaCambio})
+                            </span>
                           </div>
                         </div>
                         
                         <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-none pt-2 sm:pt-0">
-                          {/* Botones de acción rápidos */}
                           <div class="flex items-center gap-1">
                             <button onClick={() => handleIniciarEdicion(m)} class="p-1.5 hover:bg-amber-50 rounded text-gray-400 hover:text-amber-600 transition-colors" title="Modificar todo el registro">
                               <Pencil class="w-4 h-4" />
