@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
 
 // ⚠️ REEMPLAZÁ CON TUS DATOS DE JSONBIN REALES:
-const BIN_ID = "6a4729b9da38895dfe2604a3"; 
+const BIN_ID = "6a472b03da38895dfe26084f"; 
 const API_KEY = "$2a$10$hyj.2AMWWWJjShktZGJ5Z.H0/lon/J.r8qKUouHauGL4GxFnX52WG"; 
 
 export default function App() {
