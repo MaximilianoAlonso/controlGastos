@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
 
-// ⚠️ REEMPLAZÁ CON TUS DATOS DE JSONBIN REALES:
 const BIN_ID = "6a472b03da38895dfe26084f"; 
 const API_KEY = "$2a$10$UhahWGxcwBqBipKpcuxwjeBn9GjMMS9mA6HmwpMDJSnVBSFIdmvJK"; 
 
@@ -16,18 +14,22 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
 
-  // Traer los datos desde la nube de forma remota
   const cargarDatos = async () => {
     setLoading(true);
     try {
       const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { 'X-Master-Key': API_KEY }
+        method: 'GET',
+        headers: { 
+          'X-Master-Key': API_KEY,
+          'X-Bin-Meta': 'false'
+        }
       });
       const data = await res.json();
       
-      // Accedemos a la propiedad .movimientos dentro del registro de JSONBin
-      if (data.record && data.record.movimientos) {
-        setMovimientos(data.record.movimientos);
+      if (data && data.movimientos) {
+        setMovimientos(data.movimientos);
+      } else if (Array.isArray(data)) {
+        setMovimientos(data);
       } else {
         setMovimientos([]);
       }
@@ -41,6 +43,22 @@ export default function App() {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  const actualizarNube = async (nuevaLista) => {
+    try {
+      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': API_KEY
+        },
+        body: JSON.stringify({ movimientos: nuevaLista })
+      });
+    } catch (err) {
+      console.error("Error al sincronizar con la nube:", err);
+      alert("Error al guardar en la nube. Intenta actualizar manualmente.");
+    }
+  };
 
   const handleAgregar = async (e) => {
     e.preventDefault();
@@ -61,50 +79,24 @@ export default function App() {
     setMonto(''); 
     setDetalle('');
 
-    // Sincronizar en la nube manteniendo el formato del objeto
-    try {
-      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': API_KEY
-        },
-        body: JSON.stringify({ movimientos: listaActualizada })
-      });
-    } catch (err) {
-      alert("Error al guardar en la nube");
-      cargarDatos();
-    }
+    await actualizarNube(listaActualizada);
   };
 
   const handleCambiarEstado = async (id, nuevoEstado) => {
     const listaActualizada = movimientos.map(m => m.id === id ? {
       ...m, 
       estado: nuevoEstado,
-      historialCambios: [...m.historialCambios, { usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
+      historialCambios: [...(m.historialCambios || []), { usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
     } : m);
 
     setMovimientos(listaActualizada);
-
-    try {
-      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': API_KEY
-        },
-        body: JSON.stringify({ movimientos: listaActualizada })
-      });
-    } catch (err) {
-      alert("Error al actualizar el estado");
-      cargarDatos();
-    }
+    await actualizarNube(listaActualizada);
   };
 
   const getEstadoBadge = (est) => {
     if (est === 'Pagado') return 'bg-green-100 text-green-800 border border-green-300';
     if (est === 'Pendiente') return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-    return 'bg-blue-100 text-blue-800 border border-blue-300'; // En revisión
+    return 'bg-blue-100 text-blue-800 border border-blue-300';
   };
 
   return (
@@ -130,7 +122,6 @@ export default function App() {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulario de ingreso */}
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
             <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><PlusCircle class="w-5 h-5 text-indigo-600" /> Nuevo Registro</h2>
             <form onSubmit={handleAgregar} class="space-y-4">
@@ -165,7 +156,6 @@ export default function App() {
             </form>
           </div>
 
-          {/* Buscador e Historial */}
           <div class="lg:col-span-2 space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
               <div class="flex items-center gap-2 text-sm text-gray-600"><Search class="w-4 h-4 text-gray-400" /> <span>Filtrar por Mes:</span></div>
