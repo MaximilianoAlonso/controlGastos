@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import initialData from './data.json';
-import { PlusCircle, Search, Calendar, User } from 'lucide-react';
+import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
+
+// ⚠️ PONÉ TUS DATOS DE JSONBIN ACÁ ACÁ:
+const BIN_ID = "TU_BIN_ID_ACÁ"; 
+const API_KEY = "$2a$10$TU_X_MASTER_KEY_ACÁ"; 
 
 export default function App() {
-  const [movimientos, setMovimientos] = useState(() => {
-    const local = localStorage.getItem('gastos_md_data');
-    return local ? JSON.parse(local) : initialData.movimientos;
-  });
+  const [movimientos, setMovimientos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [monto, setMonto] = useState('');
   const [detalle, setDetalle] = useState('');
   const [tipo, setTipo] = useState('gasto');
@@ -14,11 +15,31 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
 
-  useEffect(() => { localStorage.setItem('gastos_md_data', JSON.stringify(movimientos)); }, [movimientos]);
+  // Traer los datos guardados en la nube gratis
+  const cargarDatos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': API_KEY }
+      });
+      const data = await res.json();
+      // JSONBin envía la info dentro de la propiedad "record"
+      setMovimientos(data.record || []);
+    } catch (err) {
+      console.error("Error al cargar datos remotos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleAgregar = (e) => {
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const handleAgregar = async (e) => {
     e.preventDefault();
     if (!monto || !detalle) return alert('Completa los campos');
+
     const nuevo = {
       id: Date.now().toString(),
       monto: parseFloat(monto),
@@ -26,15 +47,49 @@ export default function App() {
       fecha: new Date().toISOString().split('T')[0],
       historialCambios: [{ usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
     };
-    setMovimientos([nuevo, ...movimientos]);
-    setMonto(''); setDetalle('');
+
+    const listaActualizada = [nuevo, ...movimientos];
+    setMovimientos(listaActualizada);
+    setMonto(''); 
+    setDetalle('');
+
+    // Guardar la actualización en internet
+    try {
+      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': API_KEY
+        },
+        body: JSON.stringify(listaActualizada)
+      });
+    } catch (err) {
+      alert("Error al guardar en la nube");
+      cargarDatos();
+    }
   };
 
-  const handleCambiarEstado = (id, nuevoEstado) => {
-    setMovimientos(movimientos.map(m => m.id === id ? {
+  const handleCambiarEstado = async (id, nuevoEstado) => {
+    const listaActualizada = movimientos.map(m => m.id === id ? {
       ...m, estado: nuevoEstado,
       historialCambios: [...m.historialCambios, { usuario: usuarioActual, fechaCambio: new Date().toISOString().split('T')[0] }]
-    } : m));
+    } : m);
+
+    setMovimientos(listaActualizada);
+
+    try {
+      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': API_KEY
+        },
+        body: JSON.stringify(listaActualizada)
+      });
+    } catch (err) {
+      alert("Error al actualizar el estado");
+      cargarDatos();
+    }
   };
 
   const getEstadoBadge = (est) => {
@@ -49,28 +104,34 @@ export default function App() {
         <div class="bg-white shadow-sm rounded-xl p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between border border-gray-200">
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Control de Gastos y Pagos</h1>
-            <p class="text-sm text-gray-500 mt-1">Cuentas claras entre Maximiliano y Débora</p>
+            <p class="text-sm text-gray-500 mt-1">Sincronizado en la nube (Costo $0)</p>
           </div>
-          <div class="mt-4 md:mt-0 flex items-center bg-gray-50 p-2 rounded-lg border border-gray-300">
-            <span class="text-sm font-medium text-gray-600 mr-2">Operando como:</span>
-            <select value={usuarioActual} onChange={(e) => setUsuarioActual(e.target.value)} class="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-semibold text-gray-700">
-              <option value="Maximiliano">Maximiliano</option>
-              <option value="Débora">Débora</option>
-            </select>
+          <div class="mt-4 md:mt-0 flex items-center gap-2">
+            <button onClick={cargarDatos} class="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300">
+              <RefreshCw class={`w-4 h-4 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <div class="flex items-center bg-gray-50 p-2 rounded-lg border border-gray-300">
+              <span class="text-sm font-medium text-gray-600 mr-2">Operando como:</span>
+              <select value={usuarioActual} onChange={(e) => setUsuarioActual(e.target.value)} class="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-semibold text-gray-700">
+                <option value="Maximiliano">Maximiliano</option>
+                <option value="Débora">Débora</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulario */}
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
             <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><PlusCircle class="w-5 h-5 text-indigo-600" /> Nuevo Registro</h2>
             <form onSubmit={handleAgregar} class="space-y-4">
               <div>
                 <label class="block text-xs font-medium text-gray-700 uppercase tracking-wider mb-1">Monto ($)</label>
-                <input type="number" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="Ej: 25000" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="number" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="Ej: 25000" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 uppercase tracking-wider mb-1">Detalle</label>
-                <input type="text" value={detalle} onChange={(e) => setDetalle(e.target.value)} placeholder="Ej: Zapatillas nenes" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="text" value={detalle} onChange={(e) => setDetalle(e.target.value)} placeholder="Ej: Alimentos nenes" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -89,10 +150,13 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors">Agregar</button>
+              <button type="submit" disabled={loading} class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors disabled:bg-gray-400">
+                {loading ? 'Sincronizando...' : 'Agregar'}
+              </button>
             </form>
           </div>
 
+          {/* Historial */}
           <div class="lg:col-span-2 space-y-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
               <div class="flex items-center gap-2 text-sm text-gray-600"><Search class="w-4 h-4 text-gray-400" /> <span>Filtrar por Mes:</span></div>
@@ -100,13 +164,16 @@ export default function App() {
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div class="p-4 border-b border-gray-100 bg-gray-50"><h3 class="font-semibold text-gray-800">Historial</h3></div>
+              <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h3 class="font-semibold text-gray-800">Historial de Operaciones</h3>
+                {loading && <span class="text-xs text-indigo-600 animate-pulse">Cargando...</span>}
+              </div>
               <div class="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
                 {movimientos.filter(m => !filtroMes || m.fecha.startsWith(filtroMes)).length === 0 ? (
-                  <div class="p-8 text-center text-gray-500 text-sm">No hay registros.</div>
+                  <div class="p-8 text-center text-gray-500 text-sm">No hay registros cargados todavía.</div>
                 ) : (
                   movimientos.filter(m => !filtroMes || m.fecha.startsWith(filtroMes)).map((m) => {
-                    const ult = m.historialCambios[m.historialCambios.length - 1];
+                    const ult = m.historialCambios ? m.historialCambios[m.historialCambios.length - 1] : { usuario: 'Sistema', fechaCambio: m.fecha };
                     return (
                       <div key={m.id} class="p-4 hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-1">
