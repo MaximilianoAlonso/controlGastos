@@ -3,7 +3,7 @@ import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
 
 // ⚠️ PONÉ TUS DATOS DE JSONBIN ACÁ ACÁ:
 const BIN_ID = "6a4729b9da38895dfe2604a3"; 
-const API_KEY = "$2a$10$TU_X_MASTER_KEY_ACÁ"; 
+const API_KEY = "$2a$10$UhahWGxcwBqBipKpcuxwjeBn9GjMMS9mA6HmwpMDJSnVBSFIdmvJK"; 
 
 export default function App() {
   const [movimientos, setMovimientos] = useState([]);
@@ -15,8 +15,7 @@ export default function App() {
   const [usuarioActual, setUsuarioActual] = useState('Maximiliano');
   const [filtroMes, setFiltroMes] = useState('');
 
-
-
+  // Traer los datos guardados en la nube gratis
   const cargarDatos = async () => {
     setLoading(true);
     try {
@@ -24,9 +23,8 @@ export default function App() {
         headers: { 'X-Master-Key': API_KEY }
       });
       const data = await res.json();
-      
-      // CAMBIO ACÁ: Accedemos a .movimientos dentro de .record
-      setMovimientos(data.record.movimientos || []);
+      // JSONBin envía la info dentro de la propiedad "record"
+      setMovimientos(data.record || []);
     } catch (err) {
       console.error("Error al cargar datos remotos:", err);
     } finally {
