@@ -4,7 +4,7 @@ import { PlusCircle, Search, Calendar, User, RefreshCw } from 'lucide-react';
 
 // ⚠️ REEMPLAZÁ CON TUS DATOS DE JSONBIN REALES:
 const BIN_ID = "6a472b03da38895dfe26084f"; 
-const API_KEY = "$2a$10$hyj.2AMWWWJjShktZGJ5Z.H0/lon/J.r8qKUouHauGL4GxFnX52WG"; 
+const API_KEY = "$2a$10$UhahWGxcwBqBipKpcuxwjeBn9GjMMS9mA6HmwpMDJSnVBSFIdmvJK"; 
 
 export default function App() {
   const [movimientos, setMovimientos] = useState([]);
